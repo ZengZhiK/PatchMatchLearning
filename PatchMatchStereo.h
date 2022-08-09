@@ -31,7 +31,7 @@ public:
     * \param img_right	输入，右影像数据指针，3通道
     * \param disp_left	输出，左影像视差图指针，预先分配和影像等尺寸的内存空间
     */
-    bool match(const uint8 *imgLeft, const uint8 *imgRight, float32 *dispLeft);
+    bool match(const uint8 *imgLeft, const uint8 *imgRight, float32 *dispLeft, float32 *dispRight);
 
     /**
     * \brief 重设

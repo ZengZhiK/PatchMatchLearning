@@ -2,6 +2,29 @@
 #include "PatchMatchStereo.h"
 #include <opencv2/opencv.hpp>
 
+void dispMatNorm(const sint32 &width, const sint32 &height, const float32 *dispMap, cv::Mat &dispMat) {
+    float32 minDisp = FLT_MAX, maxDisp = FLT_MIN;
+    for (sint32 i = 0; i < height; i++) {
+        for (sint32 j = 0; j < width; j++) {
+            const float32 disp = dispMap[i * width + j];
+            if (disp != Invalid_Float) {
+                minDisp = std::min(minDisp, disp);
+                maxDisp = std::max(maxDisp, disp);
+            }
+        }
+    }
+    for (uint32 i = 0; i < height; i++) {
+        for (uint32 j = 0; j < width; j++) {
+            const float32 disp = dispMap[i * width + j];
+            if (disp == Invalid_Float) {
+                dispMat.data[i * width + j] = 0;
+            } else {
+                dispMat.data[i * width + j] = static_cast<uchar>((disp - minDisp) / (maxDisp - minDisp) * 255);
+            }
+        }
+    }
+}
+
 int main() {
 // ··· 读取影像
     std::string pathLeft = R"(..\data\cone\im2.png)";
@@ -39,35 +62,25 @@ int main() {
     // 匹配
     auto *disLeft = new float32[width * height]();
     auto *disRight = new float32[width * height]();
-    if (!pms.match(imgLeft.data, imgRight.data, disLeft)) {
+    if (!pms.match(imgLeft.data, imgRight.data, disLeft, disRight)) {
         std::cout << "SGM匹配失败！" << std::endl;
         return -2;
     }
 
     // 显示视差图
-    cv::Mat dispMat = cv::Mat(height, width, CV_8UC1);
-    float32 minDisp = FLT_MAX, maxDisp = FLT_MIN;
-    for (sint32 i = 0; i < height; i++) {
-        for (sint32 j = 0; j < width; j++) {
-            const float32 disp = disLeft[i * width + j];
-            if (disp != Invalid_Float) {
-                minDisp = std::min(minDisp, disp);
-                maxDisp = std::max(maxDisp, disp);
-            }
-        }
-    }
-    for (uint32 i = 0; i < height; i++) {
-        for (uint32 j = 0; j < width; j++) {
-            const float32 disp = disLeft[i * width + j];
-            if (disp == Invalid_Float) {
-                dispMat.data[i * width + j] = 0;
-            } else {
-                dispMat.data[i * width + j] = static_cast<uchar>((disp - minDisp) / (maxDisp - minDisp) * 255);
-            }
-        }
-    }
-    cv::imwrite("../dispMap.png", dispMat);
-    cv::imshow("dispMap", dispMat);
+    cv::Mat dispMatLeft = cv::Mat(height, width, CV_8UC1);
+    cv::Mat dispMatRight = cv::Mat(height, width, CV_8UC1);
+    cv::Mat dispMat = cv::Mat(height, width * 2, CV_8UC1);
+
+    dispMatNorm(width, height, disLeft, dispMatLeft);
+    dispMatNorm(width, height, disRight, dispMatRight);
+    cv::hconcat(dispMatLeft, dispMatRight, dispMat);
+
+    cv::imwrite("../dispMatLeft.png", dispMatLeft);
+    cv::imshow("dispMatLeft", dispMatLeft);
+    cv::imwrite("../dispMatRight.png", dispMatRight);
+    cv::imshow("dispMatRight", dispMatRight);
+    cv::imshow("dispMat", dispMat);
     cv::waitKey(0);
 
     delete[] disLeft;

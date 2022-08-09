@@ -18,7 +18,7 @@ PatchMatchStereo::~PatchMatchStereo() {
 }
 
 
-bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float32 *dispLeft) {
+bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float32 *dispLeft, float32 *dispRight) {
     // 随机初始化
     randomInitialization();
     // 计算灰度图
@@ -45,6 +45,9 @@ bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float3
     // 输出视差图
     if (_dispLeft && dispLeft) {
         memcpy(dispLeft, _dispLeft, _height * _width * sizeof(float32));
+    }
+    if (_dispRight && dispRight) {
+        memcpy(dispRight, _dispRight, _height * _width * sizeof(float32));
     }
 
     return true;

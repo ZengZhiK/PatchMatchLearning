@@ -41,15 +41,15 @@ struct PMSOption {
     sint32 _numIters;               // 传播迭代次数
 
     bool _isCheckLR;                // 是否检查左右一致性
-    float32 lrCheckThres;           // 左右一致性约束阈值
+    float32 _lrCheckThres;          // 左右一致性约束阈值
 
     bool _isFillHoles;              // 是否填充视差空洞
 
-    bool _isForceFpw;              // 是否强制为Frontal-Parallel Window
+    bool _isForceFpw;               // 是否强制为Frontal-Parallel Window
     bool _isIntegerDisp;            // 是否为整像素视差
 
     PMSOption() : _patchSize(35), _minDisparity(0), _maxDisparity(64), _gamma(10.0f), _alpha(0.9f),
-                  _tauCol(10.0f), _tauGrad(2.0f), _numIters(3), _isCheckLR(false), lrCheckThres(0),
+                  _tauCol(10.0f), _tauGrad(2.0f), _numIters(3), _isCheckLR(false), _lrCheckThres(0),
                   _isFillHoles(false), _isForceFpw(false), _isIntegerDisp(false) {}
 };
 
@@ -212,20 +212,20 @@ struct PVector3f {
  * \brief 视差平面
  */
 struct DisparityPlane {
-    PVector3f p;
+    PVector3f _p;
 
     DisparityPlane() = default;
 
     DisparityPlane(const float32 &x, const float32 &y, const float32 &z) {
-        p._x = x;
-        p._y = y;
-        p._z = z;
+        _p._x = x;
+        _p._y = y;
+        _p._z = z;
     }
 
     DisparityPlane(const sint32 &x, const sint32 &y, const PVector3f &n, const float32 &d) {
-        p._x = -n._x / n._z;
-        p._y = -n._y / n._z;
-        p._z = (n._x * float32(x) + n._y * float32(y) + n._z * d) / n._z;
+        _p._x = -n._x / n._z;
+        _p._y = -n._y / n._z;
+        _p._z = (n._x * float32(x) + n._y * float32(y) + n._z * d) / n._z;
     }
 
     /**
@@ -235,12 +235,12 @@ struct DisparityPlane {
      * \return 像素(x,y)的视差
      */
     float32 getDisparity(const sint32 &x, const sint32 &y) const {
-        return p.dot(PVector3f(float32(x), float32(y), 1.0f));
+        return _p.dot(PVector3f(float32(x), float32(y), 1.0f));
     }
 
     /** \brief 获取平面的法线 */
     PVector3f getNormal() const {
-        PVector3f n(p._x, p._y, -1.0f);
+        PVector3f n(_p._x, _p._y, -1.0f);
         n.normalize();
         return n;
     }
@@ -256,18 +256,18 @@ struct DisparityPlane {
      * \return 转换后的平面
      */
     DisparityPlane toAnotherView(const sint32 &x, const sint32 &y) const {
-        float denom = 1 / (p._x - 1.f);
-        return {p._x * denom, p._y * denom, p._z * denom};
+        float denom = 1 / (_p._x - 1.f);
+        return {_p._x * denom, _p._y * denom, _p._z * denom};
     }
 
     // operator ==
     bool operator==(const DisparityPlane &v) const {
-        return p == v.p;
+        return _p == v._p;
     }
 
     // operator !=
     bool operator!=(const DisparityPlane &v) const {
-        return p != v.p;
+        return _p != v._p;
     }
 };
 
