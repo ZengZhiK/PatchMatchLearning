@@ -4,6 +4,8 @@
 
 #include "PatchMatchStereo.h"
 
+#define SAFE_DELETE(P) if(P!=nullptr){delete[](P); (P)=nullptr;}
+
 PatchMatchStereo::PatchMatchStereo() : _width(0), _height(0), _imgLeft(nullptr), _imgRight(nullptr),
                                        _grayLeft(nullptr), _grayRight(nullptr),
                                        _gradLeft(nullptr), _gradRight(nullptr),
@@ -15,6 +17,7 @@ PatchMatchStereo::PatchMatchStereo() : _width(0), _height(0), _imgLeft(nullptr),
 }
 
 PatchMatchStereo::~PatchMatchStereo() {
+    release();
 }
 
 
@@ -68,10 +71,6 @@ bool PatchMatchStereo::initialize(const sint32 &width, const sint32 &height, con
 
     //··· 开辟内存空间
     const sint32 size = width * height;
-    const sint32 dispRange = option._maxDisparity - option._minDisparity;
-    // 灰度数据
-    _grayLeft = new uint8[size];
-    _grayRight = new uint8[size];
     // 梯度数据
     _gradLeft = new PGradient[size];
     _gradRight = new PGradient[size];
@@ -88,6 +87,17 @@ bool PatchMatchStereo::initialize(const sint32 &width, const sint32 &height, con
     _isInitialized = _gradLeft && _gradRight && _dispLeft && _dispRight && _planeLeft && _planeRight;
 
     return _isInitialized;
+}
+
+void PatchMatchStereo::release() {
+    SAFE_DELETE(_gradLeft);
+    SAFE_DELETE(_gradRight);
+    SAFE_DELETE(_costLeft);
+    SAFE_DELETE(_costRight);
+    SAFE_DELETE(_dispLeft);
+    SAFE_DELETE(_dispRight);
+    SAFE_DELETE(_planeLeft);
+    SAFE_DELETE(_planeRight);
 }
 
 void PatchMatchStereo::randomInitialization() const {
