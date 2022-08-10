@@ -2,8 +2,8 @@
 // Created by ZZK on 2022/7/10.
 //
 
-#ifndef SGMTYPE_H
-#define SGMTYPE_H
+#ifndef PMSTYPE_H
+#define PMSTYPE_H
 
 #include <cstdint>
 #include <limits>
@@ -61,7 +61,7 @@ struct PColor {
 
     PColor() : _r(0), _g(0), _b(0) {}
 
-    PColor(uint8 b, uint8 g, uint8 r) : _r(r), _g(0), _b(0) {}
+    PColor(uint8 b, uint8 g, uint8 r) : _r(r), _g(g), _b(b) {}
 };
 
 /**
@@ -271,4 +271,4 @@ struct DisparityPlane {
     }
 };
 
-#endif //SGMTYPE_H
+#endif //PMSTYPE_H

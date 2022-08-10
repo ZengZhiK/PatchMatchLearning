@@ -5,7 +5,7 @@
 #ifndef PATCHMATCHSTEREO_H
 #define PATCHMATCHSTEREO_H
 
-#include "PSMType.h"
+#include "PMSType.h"
 #include <vector>
 #include <utility>
 #include <ctime>

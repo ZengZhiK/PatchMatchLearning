@@ -1,4 +1,4 @@
-#include "PSMType.h"
+#include "PMSType.h"
 #include "PatchMatchStereo.h"
 #include <opencv2/opencv.hpp>
 
@@ -26,7 +26,7 @@ void dispMatNorm(const sint32 &width, const sint32 &height, const float32 *dispM
 }
 
 int main() {
-// ··· 读取影像
+    // ··· 读取影像
     std::string pathLeft = R"(..\data\cone\im2.png)";
     std::string pathRight = R"(..\data\cone\im6.png)";
 
