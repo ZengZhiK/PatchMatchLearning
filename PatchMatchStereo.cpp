@@ -20,17 +20,69 @@ PatchMatchStereo::~PatchMatchStereo() {
     release();
 }
 
+bool PatchMatchStereo::initialize(const sint32 &width, const sint32 &height, const PMSOption &option) {
+    // ··· 赋值
+
+    // 影像尺寸
+    _width = width;
+    _height = height;
+    // PMS参数
+    _option = option;
+
+    if (width <= 0 || height <= 0) {
+        return false;
+    }
+
+    //··· 开辟内存空间
+    const sint32 size = width * height;
+    // 灰度数据
+    _grayLeft = new uint8[size];
+    _grayRight = new uint8[size];
+    // 梯度数据
+    _gradLeft = new PGradient[size];
+    _gradRight = new PGradient[size];
+    // 代价数据
+    _costLeft = new float32[size];
+    _costRight = new float32[size];
+    // 视差图
+    _dispLeft = new float32[size];
+    _dispRight = new float32[size];
+    // 平面集
+    _planeLeft = new DisparityPlane[size];
+    _planeRight = new DisparityPlane[size];
+
+    _isInitialized = _grayLeft && _grayRight &&
+                     _gradLeft && _gradRight &&
+                     _costLeft && _costRight &&
+                     _dispLeft && _dispRight &&
+                     _planeLeft && _planeRight;
+
+    return _isInitialized;
+}
+
+void PatchMatchStereo::release() {
+    SAFE_DELETE(_grayLeft);
+    SAFE_DELETE(_grayRight);
+    SAFE_DELETE(_gradLeft);
+    SAFE_DELETE(_gradRight);
+    SAFE_DELETE(_costLeft);
+    SAFE_DELETE(_costRight);
+    SAFE_DELETE(_dispLeft);
+    SAFE_DELETE(_dispRight);
+    SAFE_DELETE(_planeLeft);
+    SAFE_DELETE(_planeRight);
+}
 
 bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float32 *dispLeft, float32 *dispRight) {
     // 随机初始化
     randomInitialization();
     // 计算灰度图
-    //computeGray();
+    computeGray();
     // 计算梯度图
-    //computeGradient();
+    computeGradient();
 
     // 迭代传播
-    //propagation();
+    propagation();
 
     // 平面转换成视差
     //planeToDisparity();
@@ -56,50 +108,6 @@ bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float3
     return true;
 }
 
-bool PatchMatchStereo::initialize(const sint32 &width, const sint32 &height, const PMSOption &option) {
-    // ··· 赋值
-
-    // 影像尺寸
-    _width = width;
-    _height = height;
-    // PMS参数
-    _option = option;
-
-    if (width <= 0 || height <= 0) {
-        return false;
-    }
-
-    //··· 开辟内存空间
-    const sint32 size = width * height;
-    // 梯度数据
-    _gradLeft = new PGradient[size];
-    _gradRight = new PGradient[size];
-    // 代价数据
-    _costLeft = new float32[size];
-    _costRight = new float32[size];
-    // 视差图
-    _dispLeft = new float32[size];
-    _dispRight = new float32[size];
-    // 平面集
-    _planeLeft = new DisparityPlane[size];
-    _planeRight = new DisparityPlane[size];
-
-    _isInitialized = _gradLeft && _gradRight && _dispLeft && _dispRight && _planeLeft && _planeRight;
-
-    return _isInitialized;
-}
-
-void PatchMatchStereo::release() {
-    SAFE_DELETE(_gradLeft);
-    SAFE_DELETE(_gradRight);
-    SAFE_DELETE(_costLeft);
-    SAFE_DELETE(_costRight);
-    SAFE_DELETE(_dispLeft);
-    SAFE_DELETE(_dispRight);
-    SAFE_DELETE(_planeLeft);
-    SAFE_DELETE(_planeRight);
-}
-
 void PatchMatchStereo::randomInitialization() const {
     const sint32 width = _width;
     const sint32 height = _height;
@@ -121,13 +129,13 @@ void PatchMatchStereo::randomInitialization() const {
                                                    static_cast<float32>(maxDisparity));
     std::uniform_real_distribution<float32> rand_n(-1.0f, 1.0f);
 
-    for (int k = 0; k < 2; k++) {
+    for (sint32 k = 0; k < 2; k++) {
         float32 *dispPtr = k == 0 ? _dispLeft : _dispRight;
         DisparityPlane *planePtr = k == 0 ? _planeLeft : _planeRight;
-        float sign = (k == 0) ? 1.0f : -1.0f;
+        float32 sign = (k == 0) ? 1.0f : -1.0f;
 
-        for (int r = 0; r < _height; ++r) {
-            for (int c = 0; c < _width; ++c) {
+        for (sint32 r = 0; r < _height; ++r) {
+            for (sint32 c = 0; c < _width; ++c) {
                 const sint32 p = r * width + c;
 
                 // 随机视差值
@@ -161,5 +169,104 @@ void PatchMatchStereo::randomInitialization() const {
     }
 }
 
+void PatchMatchStereo::computeGray() const {
+    const sint32 width = _width;
+    const sint32 height = _height;
+    if (width <= 0 || height <= 0 ||
+        _imgLeft == nullptr || _imgRight == nullptr ||
+        _grayLeft == nullptr || _grayRight == nullptr) {
+        return;
+    }
 
+    // 彩色转灰度
+    for (sint32 n = 0; n < 2; n++) {
+        auto *color = (n == 0) ? _imgLeft : _imgRight;
+        auto *gray = (n == 0) ? _grayLeft : _grayRight;
+        for (sint32 i = 0; i < height; i++) {
+            for (sint32 j = 0; j < width; j++) {
+                const auto b = color[i * (width * 3) + (j * 3)];
+                const auto g = color[i * (width * 3) + (j * 3) + 1];
+                const auto r = color[i * (width * 3) + (j * 3) + 2];
+                gray[i * width + j] = uint8(r * 0.299 + g * 0.587 + b * 0.114);
+            }
+        }
+    }
+}
 
+void PatchMatchStereo::computeGradient() const {
+    const sint32 width = _width;
+    const sint32 height = _height;
+    if (width <= 0 || height <= 0 ||
+        _gradLeft == nullptr || _gradRight == nullptr ||
+        _grayLeft == nullptr || _grayRight == nullptr) {
+        return;
+    }
+
+    // Sobel梯度算子
+    for (sint32 n = 0; n < 2; n++) {
+        auto *gray = (n == 0) ? _grayLeft : _grayRight;
+        auto *grad = (n == 0) ? _gradLeft : _gradRight;
+        for (sint32 y = 1; y < height - 1; y++) {
+            for (sint32 x = 1; x < width - 1; x++) {
+                const auto grad_x =
+                        (-gray[(y - 1) * width + x - 1] + gray[(y - 1) * width + x + 1]) +
+                        (-2 * gray[y * width + x - 1] + 2 * gray[y * width + x + 1]) +
+                        (-gray[(y + 1) * width + x - 1] + gray[(y + 1) * width + x + 1]);
+                const auto grad_y =
+                        (
+                                -gray[(y - 1) * width + x - 1]
+                                - 2 * gray[(y - 1) * width + x]
+                                - gray[(y - 1) * width + x + 1]
+                        ) +
+                        (
+                                gray[(y + 1) * width + x - 1] +
+                                2 * gray[(y + 1) * width + x] +
+                                gray[(y + 1) * width + x + 1]
+                        );
+                grad[y * width + x]._x = sint16(grad_x);
+                grad[y * width + x]._y = sint16(grad_y);
+            }
+        }
+    }
+}
+
+void PatchMatchStereo::propagation() const {
+    const sint32 width = _width;
+    const sint32 height = _height;
+    if (width <= 0 || height <= 0 ||
+        _imgLeft == nullptr || _imgRight == nullptr ||
+        _grayLeft == nullptr || _grayRight == nullptr ||
+        _dispLeft == nullptr || _dispRight == nullptr ||
+        _planeLeft == nullptr || _planeRight == nullptr) {
+        return;
+    }
+
+    // 左右视图匹配参数
+    const auto opionLeft = _option;
+    auto optionRight = _option;
+
+    optionRight._minDisparity = -opionLeft._maxDisparity;
+    optionRight._maxDisparity = -opionLeft._minDisparity;
+
+    // 左右视图传播实例
+    PMSPropagation propaLeft(opionLeft,
+                             width, height,
+                             _imgLeft, _imgRight,
+                             _gradLeft, _gradRight,
+                             _planeLeft, _planeRight,
+                             _costLeft, _costRight,
+                             _dispLeft);
+    PMSPropagation propaRight(optionRight,
+                              width, height,
+                              _imgRight, _imgLeft,
+                              _gradRight, _gradLeft,
+                              _planeRight, _planeLeft,
+                              _costRight, _costLeft,
+                              _dispRight);
+
+    // 迭代传播
+    for (sint32 k = 0; k < _option._numIters; k++) {
+        propaLeft.doPropagation();
+        propaRight.doPropagation();
+    }
+}

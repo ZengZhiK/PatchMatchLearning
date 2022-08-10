@@ -5,6 +5,7 @@
 #ifndef PATCHMATCHSTEREO_H
 #define PATCHMATCHSTEREO_H
 
+#include "PMSPropagation.h"
 #include "PMSType.h"
 #include <vector>
 #include <utility>
@@ -109,8 +110,8 @@ private:
     bool _isInitialized;
 
     /** \brief 误匹配区像素集	*/
-    std::vector<std::pair<int, int>> _mismatchesLeft;
-    std::vector<std::pair<int, int>> _mismatchesRight;
+    std::vector<std::pair<sint32, sint32>> _mismatchesLeft;
+    std::vector<std::pair<sint32, sint32>> _mismatchesRight;
 
 };
 

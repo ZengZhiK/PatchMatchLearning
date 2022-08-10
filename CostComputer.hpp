@@ -155,7 +155,7 @@ public:
      * \return 聚合代价值
      */
     float32 computeAggregation(const sint32 &x, const sint32 &y, const DisparityPlane &p) {
-        const int patHalf = _patchSize / 2;
+        const sint32 patHalf = _patchSize / 2;
         const PColor &colP = getColor(_imgLeft, x, y);
 
         float32 cost = 0.0f;
@@ -221,7 +221,7 @@ public:
         return gradData[y * _width + x];
     }
 
-    PVector2f getGradient(const PGradient *gradData, const float &x, const sint32 &y) {
+    PVector2f getGradient(const PGradient *gradData, const float32 &x, const sint32 &y) {
         const auto x1 = static_cast<sint32>(x);
         const sint32 x2 = x1 + 1;
         const float32 ofs = x - float32(x1);
@@ -242,7 +242,7 @@ private:
     const PGradient *_gradRight;
 
     /** \brief 参数gamma */
-    float _gamma;
+    float32 _gamma;
     /** \brief 参数alpha */
     float32 _alpha;
     /** \brief 参数tau_col */
