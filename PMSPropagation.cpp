@@ -4,7 +4,7 @@
 
 #include "PMSPropagation.h"
 
-#define SAFE_DELETE(P) if(P!=nullptr){delete[](P); (P)=nullptr;}
+#define SAFE_DELETE(P) if(P!=nullptr){delete(P); (P)=nullptr;}
 
 PMSPropagation::PMSPropagation(const PMSOption &option,
                                const sint32 &width, const sint32 &height,
@@ -25,6 +25,8 @@ PMSPropagation::PMSPropagation(const PMSOption &option,
     _costLeft = costLeft;
     _costRight = costRight;
     _disparityMap = disparityMap;
+
+    _numIter = 0;
 
     _costCptLeft = new CostComputerPMS(imgLeft, imgRight,
                                        gradLeft, gradRight,
@@ -70,5 +72,68 @@ void PMSPropagation::computeCostData() {
 }
 
 void PMSPropagation::doPropagation() {
+    if (_costCptLeft == nullptr || _costCptRight == nullptr ||
+        _imgLeft == nullptr || _imgRight == nullptr ||
+        _gradLeft == nullptr || _gradRight == nullptr ||
+        _planeLeft == nullptr || _planeRight == nullptr ||
+        _costLeft == nullptr || _disparityMap == nullptr) {
+        return;
+    }
 
+    // 偶数次迭代从左上到右下传播
+    // 奇数次迭代从右下到左上传播
+    const sint32 dir = (_numIter % 2 == 0) ? 1 : -1;
+    sint32 y = (dir == 1) ? 0 : _height - 1;
+    for (sint32 i = 0; i < _height; i++) {
+        sint32 x = (dir == 1) ? 0 : _width - 1;
+        for (sint32 j = 0; j < _width; j++) {
+
+            // 空间传播
+            spatialPropagation(x, y, dir);
+
+            x += dir;
+        }
+        y += dir;
+    }
+    ++_numIter;
+}
+
+void PMSPropagation::spatialPropagation(const sint32 &x, const sint32 &y, const sint32 &direction) {
+    // ---
+    // 空间传播
+
+    // 偶数次迭代从左上到右下传播
+    // 奇数次迭代从右下到左上传播
+    const sint32 dir = direction;
+
+    // 获取p当前的视差平面并计算代价
+    auto &planeP = _planeLeft[y * _width + x];
+    auto &costP = _costLeft[y * _width + x];
+    auto *costCpt = dynamic_cast<CostComputerPMS *>(_costCptLeft);
+
+    // 获取p左(右)侧像素的视差平面，计算将平面分配给p时的代价，取较小值
+    const sint32 xd = x - dir;
+    if (xd >= 0 && xd < _width) {
+        auto &plane = _planeLeft[y * _width + xd];
+        if (plane != planeP) {
+            const auto cost = costCpt->computeAggregation(x, y, plane);
+            if (cost < costP) {
+                planeP = plane;
+                costP = cost;
+            }
+        }
+    }
+
+    // 获取p上(下)侧像素的视差平面，计算将平面分配给p时的代价，取较小值
+    const sint32 yd = y - dir;
+    if (yd >= 0 && yd < _height) {
+        auto &plane = _planeLeft[yd * _width + x];
+        if (plane != planeP) {
+            const auto cost = costCpt->computeAggregation(x, y, plane);
+            if (cost < costP) {
+                planeP = plane;
+                costP = cost;
+            }
+        }
+    }
 }

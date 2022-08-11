@@ -74,6 +74,16 @@ void PatchMatchStereo::release() {
 }
 
 bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float32 *dispLeft, float32 *dispRight) {
+    if (!_isInitialized) {
+        return false;
+    }
+    if (imgLeft == nullptr || imgRight == nullptr) {
+        return false;
+    }
+
+    _imgLeft = imgLeft;
+    _imgRight = imgRight;
+
     // 随机初始化
     randomInitialization();
     // 计算灰度图
@@ -85,7 +95,7 @@ bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float3
     propagation();
 
     // 平面转换成视差
-    //planeToDisparity();
+    planeToDisparity();
 
     // 左右一致性检查
     if (_option._isCheckLR) {
@@ -108,7 +118,7 @@ bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float3
     return true;
 }
 
-void PatchMatchStereo::randomInitialization() const {
+void PatchMatchStereo::randomInitialization() {
     const sint32 width = _width;
     const sint32 height = _height;
 
@@ -134,9 +144,9 @@ void PatchMatchStereo::randomInitialization() const {
         DisparityPlane *planePtr = k == 0 ? _planeLeft : _planeRight;
         float32 sign = (k == 0) ? 1.0f : -1.0f;
 
-        for (sint32 r = 0; r < _height; ++r) {
-            for (sint32 c = 0; c < _width; ++c) {
-                const sint32 p = r * width + c;
+        for (sint32 y = 0; y < _height; ++y) {
+            for (sint32 x = 0; x < _width; ++x) {
+                const sint32 p = y * width + x;;
 
                 // 随机视差值
                 float32 disp = sign * rand_d(gen);
@@ -163,13 +173,13 @@ void PatchMatchStereo::randomInitialization() const {
                 }
 
                 // 计算视差平面
-                planePtr[p] = DisparityPlane(r, c, norm, disp);
+                planePtr[p] = DisparityPlane(x, y, norm, disp);
             }
         }
     }
 }
 
-void PatchMatchStereo::computeGray() const {
+void PatchMatchStereo::computeGray() {
     const sint32 width = _width;
     const sint32 height = _height;
     if (width <= 0 || height <= 0 ||
@@ -193,7 +203,7 @@ void PatchMatchStereo::computeGray() const {
     }
 }
 
-void PatchMatchStereo::computeGradient() const {
+void PatchMatchStereo::computeGradient() {
     const sint32 width = _width;
     const sint32 height = _height;
     if (width <= 0 || height <= 0 ||
@@ -230,7 +240,7 @@ void PatchMatchStereo::computeGradient() const {
     }
 }
 
-void PatchMatchStereo::propagation() const {
+void PatchMatchStereo::propagation() {
     const sint32 width = _width;
     const sint32 height = _height;
     if (width <= 0 || height <= 0 ||
@@ -242,14 +252,14 @@ void PatchMatchStereo::propagation() const {
     }
 
     // 左右视图匹配参数
-    const auto opionLeft = _option;
+    const auto optionLeft = _option;
     auto optionRight = _option;
 
-    optionRight._minDisparity = -opionLeft._maxDisparity;
-    optionRight._maxDisparity = -opionLeft._minDisparity;
+    optionRight._minDisparity = -optionLeft._maxDisparity;
+    optionRight._maxDisparity = -optionLeft._minDisparity;
 
     // 左右视图传播实例
-    PMSPropagation propaLeft(opionLeft,
+    PMSPropagation propaLeft(optionLeft,
                              width, height,
                              _imgLeft, _imgRight,
                              _gradLeft, _gradRight,
@@ -268,5 +278,26 @@ void PatchMatchStereo::propagation() const {
     for (sint32 k = 0; k < _option._numIters; k++) {
         propaLeft.doPropagation();
         propaRight.doPropagation();
+    }
+}
+
+void PatchMatchStereo::planeToDisparity() {
+    const sint32 width = _width;
+    const sint32 height = _height;
+    if (width <= 0 || height <= 0 ||
+        _dispLeft == nullptr || _dispRight == nullptr ||
+        _planeLeft == nullptr || _planeRight == nullptr) {
+        return;
+    }
+    for (int k = 0; k < 2; k++) {
+        auto *planePtr = (k == 0) ? _planeLeft : _planeRight;
+        auto *dispPtr = (k == 0) ? _dispLeft : _dispRight;
+        for (sint32 y = 0; y < height; y++) {
+            for (sint32 x = 0; x < width; x++) {
+                const sint32 p = y * width + x;
+                const auto &plane = planePtr[p];
+                dispPtr[p] = plane.getDisparity(x, y);
+            }
+        }
     }
 }

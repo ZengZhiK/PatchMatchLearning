@@ -44,16 +44,16 @@ public:
 
 private:
     /** \brief 随机初始化 */
-    void randomInitialization() const;
+    void randomInitialization();
 
     /** \brief 计算灰度数据 */
-    void computeGray() const;
+    void computeGray();
 
     /** \brief 计算梯度数据 */
-    void computeGradient() const;
+    void computeGradient();
 
     /** \brief 迭代传播 */
-    void propagation() const;
+    void propagation();
 
     /** \brief 一致性检查	 */
     void lrCheck();
@@ -62,7 +62,7 @@ private:
     void fillHolesInDispMap();
 
     /** \brief 平面转换成视差 */
-    void planeToDisparity() const;
+    void planeToDisparity();
 
     /** \brief 内存释放	 */
     void release();

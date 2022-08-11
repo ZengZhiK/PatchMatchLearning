@@ -6,7 +6,7 @@ void dispMatNorm(const sint32 &width, const sint32 &height, const float32 *dispM
     float32 minDisp = FLT_MAX, maxDisp = FLT_MIN;
     for (sint32 i = 0; i < height; i++) {
         for (sint32 j = 0; j < width; j++) {
-            const float32 disp = dispMap[i * width + j];
+            const float32 disp = std::abs(dispMap[i * width + j]);
             if (disp != Invalid_Float) {
                 minDisp = std::min(minDisp, disp);
                 maxDisp = std::max(maxDisp, disp);
@@ -15,7 +15,7 @@ void dispMatNorm(const sint32 &width, const sint32 &height, const float32 *dispM
     }
     for (uint32 i = 0; i < height; i++) {
         for (uint32 j = 0; j < width; j++) {
-            const float32 disp = dispMap[i * width + j];
+            const float32 disp = std::abs(dispMap[i * width + j]);
             if (disp == Invalid_Float) {
                 dispMat.data[i * width + j] = 0;
             } else {
@@ -30,8 +30,8 @@ int main() {
     std::string pathLeft = R"(..\data\cone\im2.png)";
     std::string pathRight = R"(..\data\cone\im6.png)";
 
-    cv::Mat imgLeft = cv::imread(pathLeft, cv::IMREAD_GRAYSCALE);
-    cv::Mat imgRight = cv::imread(pathRight, cv::IMREAD_GRAYSCALE);
+    cv::Mat imgLeft = cv::imread(pathLeft, cv::IMREAD_COLOR);
+    cv::Mat imgRight = cv::imread(pathRight, cv::IMREAD_COLOR);
 
     if (imgLeft.data == nullptr || imgRight.data == nullptr) {
         std::cout << "读取影像失败！" << std::endl;
@@ -46,24 +46,55 @@ int main() {
     const auto width = static_cast<sint32>(imgLeft.cols);
     const auto height = static_cast<sint32>(imgRight.rows);
 
+    // 左右影像的彩色数据
+    auto bytesLeft = new uint8[width * height * 3];
+    auto bytesRight = new uint8[width * height * 3];
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            bytesLeft[i * 3 * width + 3 * j] = imgLeft.at<cv::Vec3b>(i, j)[0];
+            bytesLeft[i * 3 * width + 3 * j + 1] = imgLeft.at<cv::Vec3b>(i, j)[1];
+            bytesLeft[i * 3 * width + 3 * j + 2] = imgLeft.at<cv::Vec3b>(i, j)[2];
+            bytesRight[i * 3 * width + 3 * j] = imgRight.at<cv::Vec3b>(i, j)[0];
+            bytesRight[i * 3 * width + 3 * j + 1] = imgRight.at<cv::Vec3b>(i, j)[1];
+            bytesRight[i * 3 * width + 3 * j + 2] = imgRight.at<cv::Vec3b>(i, j)[2];
+        }
+    }
+    printf("Done!\n");
+
+    // PMS匹配参数设计
     PMSOption psmOption;
+    // patch大小
+    psmOption._patchSize = 35;
     // 候选视差范围
     psmOption._minDisparity = 0;
     psmOption._maxDisparity = 64;
-
+    // gamma
+    psmOption._gamma = 10.0f;
+    // alpha
+    psmOption._alpha = 0.9f;
+    // t_col
+    psmOption._tauCol = 10.0f;
+    // t_grad
+    psmOption._tauGrad = 2.0f;
+    // 传播迭代次数
+    psmOption._numIters = 1;
+    // 前端平行窗口
+    psmOption._isForceFpw = false;
+    // 整数视差精度
+    psmOption._isIntegerDisp = false;
 
     PatchMatchStereo pms;
     // 初始化
     if (!pms.initialize(width, height, psmOption)) {
-        std::cout << "SGM初始化失败！" << std::endl;
+        std::cout << "PMS Initialization Failure!" << std::endl;
         return -2;
     }
 
     // 匹配
     auto *disLeft = new float32[width * height]();
     auto *disRight = new float32[width * height]();
-    if (!pms.match(imgLeft.data, imgRight.data, disLeft, disRight)) {
-        std::cout << "SGM匹配失败！" << std::endl;
+    if (!pms.match(bytesLeft, bytesRight, disLeft, disRight)) {
+        std::cout << "PMS Matching Failure!" << std::endl;
         return -2;
     }
 

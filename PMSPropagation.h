@@ -56,7 +56,19 @@ private:
     CostComputer *_costCptLeft;
     CostComputer *_costCptRight;
 
+    /** \brief 传播迭代次数 */
+    sint32 _numIter;
+
+    /** \brief 计算代价数据 */
     void computeCostData();
+
+    /**
+     * \brief 空间传播
+     * \param x 像素x坐标
+     * \param y 像素y坐标
+     * \param direction 传播方向
+     */
+    void spatialPropagation(const sint32& x, const sint32& y, const sint32& direction);
 };
 
 
