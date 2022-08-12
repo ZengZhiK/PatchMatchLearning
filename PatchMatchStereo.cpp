@@ -135,9 +135,9 @@ void PatchMatchStereo::randomInitialization() {
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float32> rand_d(static_cast<float32>(minDisparity),
-                                                   static_cast<float32>(maxDisparity));
-    std::uniform_real_distribution<float32> rand_n(-1.0f, 1.0f);
+    std::uniform_real_distribution<float32> randDisp(static_cast<float32>(minDisparity),
+                                                     static_cast<float32>(maxDisparity));
+    std::uniform_real_distribution<float32> randNorm(-1.0f, 1.0f);
 
     for (sint32 k = 0; k < 2; k++) {
         float32 *dispPtr = k == 0 ? _dispLeft : _dispRight;
@@ -149,7 +149,7 @@ void PatchMatchStereo::randomInitialization() {
                 const sint32 p = y * width + x;;
 
                 // 随机视差值
-                float32 disp = sign * rand_d(gen);
+                float32 disp = sign * randDisp(gen);
                 if (option._isIntegerDisp) {
                     disp = static_cast<float32>(round(disp));
                 }
@@ -158,11 +158,11 @@ void PatchMatchStereo::randomInitialization() {
                 // 随机法向量
                 PVector3f norm;
                 if (!option._isForceFpw) {
-                    norm._x = rand_n(gen);
-                    norm._y = rand_n(gen);
-                    float32 z = rand_n(gen);
+                    norm._x = randNorm(gen);
+                    norm._y = randNorm(gen);
+                    float32 z = randNorm(gen);
                     while (z == 0.0f) {
-                        z = rand_n(gen);
+                        z = randNorm(gen);
                     }
                     norm._z = z;
                     norm.normalize();

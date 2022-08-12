@@ -43,6 +43,10 @@ PMSPropagation::PMSPropagation(const PMSOption &option,
                                         -option._maxDisparity, -option._minDisparity,
                                         option._gamma, option._alpha, option._tauCol, option._tauGrad);
 
+    // 随机数生成器
+    _randDisp = new std::uniform_real_distribution<float32>(-1.0f, 1.0f);
+    _randNorm = new std::uniform_real_distribution<float32>(-1.0f, 1.0f);
+
     // 计算初始代价数据
     computeCostData();
 }
@@ -50,6 +54,8 @@ PMSPropagation::PMSPropagation(const PMSOption &option,
 PMSPropagation::~PMSPropagation() {
     SAFE_DELETE(_costCptLeft);
     SAFE_DELETE(_costCptRight);
+    SAFE_DELETE(_randDisp);
+    SAFE_DELETE(_randNorm);
 }
 
 void PMSPropagation::computeCostData() {
@@ -90,6 +96,11 @@ void PMSPropagation::doPropagation() {
 
             // 空间传播
             spatialPropagation(x, y, dir);
+
+            // 平面优化
+            if (!_option._isForceFpw) {
+                planeRefine(x, y);
+            }
 
             x += dir;
         }
@@ -135,5 +146,82 @@ void PMSPropagation::spatialPropagation(const sint32 &x, const sint32 &y, const 
                 costP = cost;
             }
         }
+    }
+}
+
+void PMSPropagation::planeRefine(const sint32 &x, const sint32 &y) {
+    auto minDisp = _option._minDisparity;
+    auto maxDisp = _option._maxDisparity;
+
+    // 像素p的平面、代价、视差、法线
+    auto &planeP = _planeLeft[y * _width + x];
+    auto &costP = _costLeft[y * _width + x];
+    float32 dispP = planeP.getDisparity(x, y);
+    PVector3f normP = planeP.getNormal();
+
+    // 迭代条件
+    float32 dispUpdate = float32(maxDisp - minDisp) / 2.0f;
+    float32 normUpdate = 1.0f;
+    const float32 stopThres = 0.1f;
+
+    // 代价计算器
+    auto *costCpt = dynamic_cast<CostComputerPMS *>(_costCptLeft);
+
+    // 随机数生成器
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    auto &randDisp = *_randDisp;
+    auto &randNorm = *_randNorm;
+
+    // 迭代优化
+    while (dispUpdate > stopThres) {
+        // 在 -disp_update ~ disp_update 范围内随机一个视差增量
+        float32 dispRd = randDisp(gen) * dispUpdate;
+        if (_option._isIntegerDisp) {
+            dispRd = static_cast<float32>(round(dispRd));
+        }
+
+        float32 dispPNew = dispP + dispRd;
+        if (dispPNew < float32(minDisp) || dispPNew > float32(maxDisp)) {
+            dispUpdate /= 2.0f;
+            normUpdate /= 2.0f;
+            continue;
+        }
+
+        // 在 -norm_update ~ norm_update 范围内随机三个值作为法线增量的三个分量
+        PVector3f normRd;
+        if (!_option._isForceFpw) {
+            normRd._x = randNorm(gen) * normUpdate;
+            normRd._y = randNorm(gen) * normUpdate;
+            float32 z = randNorm(gen) * normUpdate;
+            while (z == 0.0f) {
+                z = randNorm(gen) * normUpdate;
+            }
+            normRd._z = z;
+        } else {
+            normRd._x = 0.0f;
+            normRd._y = 0.0f;
+            normRd._z = 0.0f;
+        }
+        // 计算像素p新的法线
+        auto normPNew = normP + normRd;
+        normPNew.normalize();
+
+        // 计算新的视差平面
+        auto planeNew = DisparityPlane(x, y, normPNew, dispPNew);
+
+        // 比较Cost
+        if (planeNew != planeP) {
+            float32 cost = costCpt->computeAggregation(x, y, planeNew);
+            if (cost < costP) {
+                planeP = planeNew;
+                costP = cost;
+                dispP = dispPNew;
+                normP = normPNew;
+            }
+        }
+
+        dispUpdate /= 2.0f;
+        normUpdate /= 2.0f;
     }
 }

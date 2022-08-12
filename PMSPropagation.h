@@ -6,6 +6,7 @@
 #define PMSPROPAGATION_H
 
 
+#include <random>
 #include "PMSType.h"
 #include "CostComputer.hpp"
 
@@ -59,6 +60,10 @@ private:
     /** \brief 传播迭代次数 */
     sint32 _numIter;
 
+    /** \brief 随机数生成器 */
+    std::uniform_real_distribution<float32>* _randDisp;
+    std::uniform_real_distribution<float32>* _randNorm;
+
     /** \brief 计算代价数据 */
     void computeCostData();
 
@@ -69,6 +74,20 @@ private:
      * \param direction 传播方向
      */
     void spatialPropagation(const sint32& x, const sint32& y, const sint32& direction);
+
+    /**
+     * \brief 视图传播
+     * \param x 像素x坐标
+     * \param y 像素y坐标
+     */
+    void viewPropagation(const sint32& x, const sint32& y);
+
+    /**
+     * \brief 平面优化
+     * \param x 像素x坐标
+     * \param y 像素y坐标
+     */
+    void planeRefine(const sint32& x, const sint32& y);
 };
 
 
