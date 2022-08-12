@@ -77,7 +77,7 @@ int main() {
     // t_grad
     psmOption._tauGrad = 2.0f;
     // 传播迭代次数
-    psmOption._numIters = 1;
+    psmOption._numIters = 3;
     // 前端平行窗口
     psmOption._isForceFpw = false;
     // 整数视差精度
@@ -91,8 +91,8 @@ int main() {
     }
 
     // 匹配
-    auto *disLeft = new float32[width * height]();
-    auto *disRight = new float32[width * height]();
+    auto *disLeft = new float32[width * height];
+    auto *disRight = new float32[width * height];
     if (!pms.match(bytesLeft, bytesRight, disLeft, disRight)) {
         std::cout << "PMS Matching Failure!" << std::endl;
         return -2;

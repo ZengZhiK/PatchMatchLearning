@@ -102,6 +102,8 @@ void PMSPropagation::doPropagation() {
                 planeRefine(x, y);
             }
 
+            viewPropagation(x, y);
+
             x += dir;
         }
         y += dir;
@@ -223,5 +225,37 @@ void PMSPropagation::planeRefine(const sint32 &x, const sint32 &y) {
 
         dispUpdate /= 2.0f;
         normUpdate /= 2.0f;
+    }
+}
+
+void PMSPropagation::viewPropagation(const sint32 &x, const sint32 &y) {
+    // --
+    // 视图传播
+    // 搜索p在右视图的同名点q，更新q的平面
+
+    // 左视图匹配点p的位置及其视差平面
+    const sint32 p = y * _width + x;
+    const auto &planeP = _planeLeft[p];
+    const float32 dispP = planeP.getDisparity(x, y);
+
+    auto *costCpt = dynamic_cast<CostComputerPMS *>(_costCptRight);
+
+    // 计算右视图列号
+    const sint32 xr = std::lround(float32(x) - dispP);
+    if (xr < 0 || xr >= _width) {
+        return;
+    }
+
+    const sint32 q = y * _width + xr;
+    auto &planeQ = _planeRight[q];
+    auto &costQ = _costRight[q];
+
+    // 将左视图的视差平面转换到右视图
+    const auto planeP2Q = planeP.toAnotherView(x, y);
+    const float32 dispQ = planeP2Q.getDisparity(xr, y);
+    const auto cost = costCpt->computeAggregation(xr, y, planeP2Q);
+    if (cost < costQ) {
+        planeQ = planeP2Q;
+        costQ = cost;
     }
 }

@@ -256,8 +256,8 @@ struct DisparityPlane {
      * \return 转换后的平面
      */
     DisparityPlane toAnotherView(const sint32 &x, const sint32 &y) const {
-        float32 denom = 1 / (_p._x - 1.f);
-        return {_p._x * denom, _p._y * denom, _p._z * denom};
+        const float32 d = getDisparity(x, y);
+        return {-_p._x, -_p._y, -_p._z - _p._x * d};
     }
 
     // operator ==

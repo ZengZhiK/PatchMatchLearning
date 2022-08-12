@@ -7,6 +7,7 @@
 
 
 #include <random>
+#include <cmath>
 #include "PMSType.h"
 #include "CostComputer.hpp"
 
