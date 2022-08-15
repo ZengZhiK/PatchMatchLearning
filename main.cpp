@@ -77,7 +77,7 @@ int main() {
     // t_grad
     psmOption._tauGrad = 2.0f;
     // 传播迭代次数
-    psmOption._numIters = 1;
+    psmOption._numIters = 3;
     // 前端平行窗口
     psmOption._isForceFpw = false;
     // 整数视差精度
