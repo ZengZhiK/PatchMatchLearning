@@ -15,7 +15,7 @@ class CostComputer {
 public:
     /** \brief 代价计算器默认构造 */
     CostComputer() : _imgLeft(nullptr), _imgRight(nullptr), _width(0), _height(0),
-                     _patchSize(0), _minDisp(0), _maxDisp(0) {}
+                     _patchSize(0), _minDisparity(0), _maxDisparity(0) {}
 
     /**
      * \brief 代价计算器初始化
@@ -28,14 +28,14 @@ public:
      * \param max_disp		最大视差
      */
     CostComputer(const uint8 *imgLeft, const uint8 *imgRight, const sint32 &width, const sint32 &height,
-                 const sint32 &patchSize, const sint32 &minDisp, const sint32 &maxDisp) {
+                 const sint32 &patchSize, const sint32 &minDisparity, const sint32 &maxDisparity) {
         _imgLeft = imgLeft;
         _imgRight = imgRight;
         _width = width;
         _height = height;
         _patchSize = patchSize;
-        _minDisp = minDisp;
-        _maxDisp = maxDisp;
+        _minDisparity = minDisparity;
+        _maxDisparity = maxDisparity;
     }
 
     /** \brief 代价计算器析构 */
@@ -64,8 +64,8 @@ public:
     sint32 _patchSize;
 
     /** \brief 最小最大视差 */
-    sint32 _minDisp;
-    sint32 _maxDisp;
+    sint32 _minDisparity;
+    sint32 _maxDisparity;
 };
 
 /**
@@ -97,10 +97,10 @@ public:
                     const PGradient *gradLeft, const PGradient *gradRight,
                     const sint32 &width, const sint32 &height,
                     const sint32 &patchSize,
-                    const sint32 &minDisp, const sint32 &maxDisp,
+                    const sint32 &minDisparity, const sint32 &maxDisparity,
                     const float32 &gamma, const float32 &alpha,
                     const float32 &tauCol, const float32 tauGrad) :
-            CostComputer(imgLeft, imgRight, width, height, patchSize, minDisp, maxDisp) {
+            CostComputer(imgLeft, imgRight, width, height, patchSize, minDisparity, maxDisparity) {
         _gradLeft = gradLeft;
         _gradRight = gradRight;
         _gamma = gamma;
@@ -170,7 +170,7 @@ public:
                 // 计算视差值
                 const float32 d = p.getDisparity(xL, yL);
 
-                if (d < float32(_minDisp) || d > float32(_maxDisp)) {
+                if (d < float32(_minDisparity) || d > float32(_maxDisparity)) {
                     cost += COST_PUNISH;
                     continue;
                 }

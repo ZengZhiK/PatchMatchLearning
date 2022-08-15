@@ -218,11 +218,11 @@ void PatchMatchStereo::computeGradient() {
         auto *grad = (n == 0) ? _gradLeft : _gradRight;
         for (sint32 y = 1; y < height - 1; y++) {
             for (sint32 x = 1; x < width - 1; x++) {
-                const auto grad_x =
+                const auto gradX =
                         (-gray[(y - 1) * width + x - 1] + gray[(y - 1) * width + x + 1]) +
                         (-2 * gray[y * width + x - 1] + 2 * gray[y * width + x + 1]) +
                         (-gray[(y + 1) * width + x - 1] + gray[(y + 1) * width + x + 1]);
-                const auto grad_y =
+                const auto gradY =
                         (
                                 -gray[(y - 1) * width + x - 1]
                                 - 2 * gray[(y - 1) * width + x]
@@ -233,8 +233,8 @@ void PatchMatchStereo::computeGradient() {
                                 2 * gray[(y + 1) * width + x] +
                                 gray[(y + 1) * width + x + 1]
                         );
-                grad[y * width + x]._x = sint16(grad_x);
-                grad[y * width + x]._y = sint16(grad_y);
+                grad[y * width + x]._x = sint16(gradX / 8);
+                grad[y * width + x]._y = sint16(gradY / 8);
             }
         }
     }

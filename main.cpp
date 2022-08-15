@@ -3,13 +3,13 @@
 #include <opencv2/opencv.hpp>
 
 void dispMatNorm(const sint32 &width, const sint32 &height, const float32 *dispMap, cv::Mat &dispMat) {
-    float32 minDisp = FLT_MAX, maxDisp = FLT_MIN;
+    float32 minDisparity = FLT_MAX, maxDisparity = FLT_MIN;
     for (sint32 i = 0; i < height; i++) {
         for (sint32 j = 0; j < width; j++) {
             const float32 disp = std::abs(dispMap[i * width + j]);
             if (disp != Invalid_Float) {
-                minDisp = std::min(minDisp, disp);
-                maxDisp = std::max(maxDisp, disp);
+                minDisparity = std::min(minDisparity, disp);
+                maxDisparity = std::max(maxDisparity, disp);
             }
         }
     }
@@ -19,7 +19,7 @@ void dispMatNorm(const sint32 &width, const sint32 &height, const float32 *dispM
             if (disp == Invalid_Float) {
                 dispMat.data[i * width + j] = 0;
             } else {
-                dispMat.data[i * width + j] = static_cast<uchar>((disp - minDisp) / (maxDisp - minDisp) * 255);
+                dispMat.data[i * width + j] = static_cast<uchar>((disp - minDisparity) / (maxDisparity - minDisparity) * 255);
             }
         }
     }
@@ -34,11 +34,11 @@ int main() {
     cv::Mat imgRight = cv::imread(pathRight, cv::IMREAD_COLOR);
 
     if (imgLeft.data == nullptr || imgRight.data == nullptr) {
-        std::cout << "读取影像失败！" << std::endl;
+        std::cout << "Read Image Failed!" << std::endl;
         return -1;
     }
     if (imgLeft.rows != imgRight.rows || imgLeft.cols != imgRight.cols) {
-        std::cout << "左右影像尺寸不一致！" << std::endl;
+        std::cout << "Image Size is Inconsistent!" << std::endl;
         return -1;
     }
 
@@ -77,7 +77,7 @@ int main() {
     // t_grad
     psmOption._tauGrad = 2.0f;
     // 传播迭代次数
-    psmOption._numIters = 3;
+    psmOption._numIters = 1;
     // 前端平行窗口
     psmOption._isForceFpw = false;
     // 整数视差精度

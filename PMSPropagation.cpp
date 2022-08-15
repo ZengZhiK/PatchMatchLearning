@@ -152,8 +152,8 @@ void PMSPropagation::spatialPropagation(const sint32 &x, const sint32 &y, const 
 }
 
 void PMSPropagation::planeRefine(const sint32 &x, const sint32 &y) {
-    auto minDisp = _option._minDisparity;
-    auto maxDisp = _option._maxDisparity;
+    auto minDisparity = _option._minDisparity;
+    auto maxDisparity = _option._maxDisparity;
 
     // 像素p的平面、代价、视差、法线
     auto &planeP = _planeLeft[y * _width + x];
@@ -162,7 +162,7 @@ void PMSPropagation::planeRefine(const sint32 &x, const sint32 &y) {
     PVector3f normP = planeP.getNormal();
 
     // 迭代条件
-    float32 dispUpdate = float32(maxDisp - minDisp) / 2.0f;
+    float32 dispUpdate = float32(maxDisparity - minDisparity) / 2.0f;
     float32 normUpdate = 1.0f;
     const float32 stopThres = 0.1f;
 
@@ -184,7 +184,7 @@ void PMSPropagation::planeRefine(const sint32 &x, const sint32 &y) {
         }
 
         float32 dispPNew = dispP + dispRd;
-        if (dispPNew < float32(minDisp) || dispPNew > float32(maxDisp)) {
+        if (dispPNew < float32(minDisparity) || dispPNew > float32(maxDisparity)) {
             dispUpdate /= 2.0f;
             normUpdate /= 2.0f;
             continue;
