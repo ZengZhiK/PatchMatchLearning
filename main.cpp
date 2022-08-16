@@ -82,6 +82,9 @@ int main() {
     psmOption._isForceFpw = false;
     // 整数视差精度
     psmOption._isIntegerDisp = false;
+    // 一致性检查
+    psmOption._isCheckLR = true;
+    psmOption._lrCheckThres = 1.0f;
 
     PatchMatchStereo pms;
     // 初始化

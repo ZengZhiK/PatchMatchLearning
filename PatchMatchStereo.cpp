@@ -100,7 +100,7 @@ bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float3
     // 左右一致性检查
     if (_option._isCheckLR) {
         // 一致性检查
-        // lrCheck();
+        lrCheck();
     }
     // 视差填充
     if (_option._isFillHoles) {
@@ -300,4 +300,44 @@ void PatchMatchStereo::planeToDisparity() {
             }
         }
     }
+}
+
+void PatchMatchStereo::lrCheck() {
+    const sint32 width = _width;
+    const sint32 height = _height;
+
+    const float32 &threshold = _option._lrCheckThres;
+
+    // k==0 : 左视图一致性检查
+    // k==1 : 右视图一致性检查
+    for (int k = 0; k < 2; k++) {
+        auto *dispLeft = (k == 0) ? _dispLeft : _dispRight;
+        auto *dispRight = (k == 0) ? _dispRight : _dispLeft;
+        auto &mismatches = (k == 0) ? _mismatchesLeft : _mismatchesRight;
+        mismatches.clear();
+
+        // ---左右一致性检查
+        for (sint32 y = 0; y < height; y++) {
+            for (sint32 x = 0; x < width; x++) {
+                auto &dispL = dispLeft[y * width + x];
+                if (dispL == Invalid_Float) {
+                    mismatches.emplace_back(x, y);
+                    continue;
+                }
+
+                sint32 xr = lround(float64(x) - dispL);
+                if (xr < 0 || xr >= width) {
+                    dispL = Invalid_Float;
+                    mismatches.emplace_back(x, y);
+                } else {
+                    auto &dispR = dispRight[y * width + xr];
+                    if (std::abs(dispL + dispR) > threshold) {
+                        dispL = Invalid_Float;
+                        mismatches.emplace_back(x, y);
+                    }
+                }
+            }
+        }
+    }
+
 }
