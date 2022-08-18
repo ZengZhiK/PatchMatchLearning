@@ -107,6 +107,9 @@ bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float3
         fillHolesInDispMap();
     }
 
+    weightedMedianFilter(_imgLeft, _mismatchesLeft, _dispLeft);
+    weightedMedianFilter(_imgRight, _mismatchesRight, _dispRight);
+
     // 输出视差图
     if (_dispLeft && dispLeft) {
         memcpy(dispLeft, _dispLeft, _height * _width * sizeof(float32));
@@ -411,4 +414,74 @@ void PatchMatchStereo::fillHolesInDispMap() {
         }
 
     }
+}
+
+void PatchMatchStereo::weightedMedianFilter(const uint8 *imgData,
+                                            const std::vector<std::pair<sint32, sint32>> &filterPixels,
+                                            float32 *disparityMap) {
+
+    const sint32 width = _width;
+    const sint32 height = _height;
+    if (width <= 0 || height <= 0 ||
+        imgData == nullptr || disparityMap == nullptr) {
+        return;
+    }
+
+    auto winSize = _option._patchSize;
+    auto gamma = _option._gamma;
+    auto winSizeHalf = winSize / 2;
+
+    // 带权视差集
+    std::vector<std::pair<float32, float32>> dispWithWeight(winSize * winSize);
+
+    for (auto &pixel: filterPixels) {
+        dispWithWeight.clear();
+
+        const sint32 x = pixel.first;
+        const sint32 y = pixel.second;
+        const auto &colP = getColor(imgData, width, height, x, y);
+        float32 totalW = 0.0f;
+
+        for (sint32 r = -winSizeHalf; r <= winSizeHalf; r++) {
+            for (sint32 c = -winSizeHalf; c <= winSizeHalf; c++) {
+                const sint32 yr = y + r;
+                const sint32 xc = x + c;
+                if (yr < 0 || yr >= height || xc < 0 || xc >= width) {
+                    continue;
+                }
+
+                // weighted median filter
+                const auto &disp = disparityMap[yr * width + xc];
+                // 计算权值
+                const auto &colQ = getColor(imgData, width, height, xc, yr);
+                const auto dc = std::abs(colP._r - colQ._r) +
+                                std::abs(colP._g - colQ._g) +
+                                std::abs(colP._b - colQ._b);
+                const auto w = exp(-dc / gamma);
+                totalW += w;
+                // 存储带权视差
+                dispWithWeight.emplace_back(disp, w);
+            }
+        }
+
+        // --- 取加权中值
+        // 按value排序
+        std::sort(dispWithWeight.begin(), dispWithWeight.end());
+        const float32 medianW = totalW / 2;
+        float32 w = 0.0f;
+        for (auto &dw: dispWithWeight) {
+            w += dw.second;
+            if (w >= medianW) {
+                disparityMap[y * width + x] = dw.first;
+                break;
+            }
+        }
+
+    }
+}
+
+PColor PatchMatchStereo::getColor(const uint8 *imgData, const sint32 &width, const sint32 &height,
+                                  const sint32 &x, const sint32 &y) {
+    auto *pixel = imgData + y * width * 3 + 3 * x;
+    return {pixel[0], pixel[1], pixel[2]};
 }

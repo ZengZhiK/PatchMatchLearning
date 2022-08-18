@@ -10,6 +10,7 @@
 #include <vector>
 #include <ctime>
 #include <random>
+#include <algorithm>
 
 class PatchMatchStereo {
 public:
@@ -59,6 +60,14 @@ private:
 
     /** \brief 视差图填充 */
     void fillHolesInDispMap();
+
+    /** \brief 加权中值滤波 */
+    void weightedMedianFilter(const uint8 *imgData,
+                              const std::vector<std::pair<sint32, sint32>> &filterPixels,
+                              float32 *disparityMap);
+
+    static PColor getColor(const uint8 *imgData, const sint32 &width, const sint32 &height,
+                                      const sint32 &x, const sint32 &y);
 
     /** \brief 平面转换成视差 */
     void planeToDisparity();
