@@ -104,7 +104,7 @@ bool PatchMatchStereo::match(const uint8 *imgLeft, const uint8 *imgRight, float3
     }
     // 视差填充
     if (_option._isFillHoles) {
-        //	FillHolesInDispMap();
+        fillHolesInDispMap();
     }
 
     // 输出视差图
@@ -340,4 +340,75 @@ void PatchMatchStereo::lrCheck() {
         }
     }
 
+}
+
+void PatchMatchStereo::fillHolesInDispMap() {
+    const sint32 width = _width;
+    const sint32 height = _height;
+    if (width <= 0 || height <= 0 ||
+        _dispLeft == nullptr || _dispRight == nullptr ||
+        _planeLeft == nullptr || _planeRight == nullptr) {
+        return;
+    }
+
+    const auto &option = _option;
+
+    // k==0 : 左视图视差填充
+    // k==1 : 右视图视差填充
+    for (int k = 0; k < 2; k++) {
+        auto &mismatches = (k == 0) ? _mismatchesLeft : _mismatchesRight;
+        if (mismatches.empty()) {
+            continue;
+        }
+
+        const auto *imgPtr = (k == 0) ? _imgLeft : _imgRight;
+        const auto *planePtr = (k == 0) ? _planeLeft : _planeRight;
+        auto *dispPtr = (k == 0) ? _dispLeft : _dispRight;
+        std::vector<float32> fillDisps(mismatches.size());  // 存储每个待填充像素的视差
+
+        for (int n = 0; n < mismatches.size(); ++n) {
+            auto &pixel = mismatches[n];
+            const sint32 x = pixel.first;
+            const sint32 y = pixel.second;
+
+            std::vector<DisparityPlane> planes;
+            // 向左向右各搜寻第一个有效像素，记录平面
+            sint32 xr = x + 1;
+            while (xr < width) {
+                if (dispPtr[y * width + xr] != Invalid_Float) {
+                    planes.push_back(planePtr[y * width + xr]);
+                    break;
+                }
+                xr++;
+            }
+
+            sint32 xl = x - 1;
+            while (xl >= 0) {
+                if (dispPtr[y * width + xl] != Invalid_Float) {
+                    planes.push_back(planePtr[y * width + xl]);
+                    break;
+                }
+                xl--;
+            }
+
+            if (planes.empty()) {
+                continue;
+            } else if (planes.size() == 1) {
+                fillDisps[n] = (planes[0].getDisparity(x, y));
+            } else {
+                // 选择较小的视差
+                const auto dispR = planes[0].getDisparity(x, y);
+                const auto dispL = planes[1].getDisparity(x, y);
+                fillDisps[n] = dispR < dispL ? dispR : dispL;
+            }
+        }
+
+        for (int n = 0; n < mismatches.size(); ++n) {
+            auto &pixel = mismatches[n];
+            const sint32 x = pixel.first;
+            const sint32 y = pixel.second;
+            dispPtr[y * width + x] = fillDisps[n];
+        }
+
+    }
 }

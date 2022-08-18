@@ -19,7 +19,8 @@ void dispMatNorm(const sint32 &width, const sint32 &height, const float32 *dispM
             if (disp == Invalid_Float) {
                 dispMat.data[i * width + j] = 0;
             } else {
-                dispMat.data[i * width + j] = static_cast<uchar>((disp - minDisparity) / (maxDisparity - minDisparity) * 255);
+                dispMat.data[i * width + j] = static_cast<uchar>((disp - minDisparity) / (maxDisparity - minDisparity) *
+                                                                 255);
             }
         }
     }
@@ -85,6 +86,8 @@ int main() {
     // 一致性检查
     psmOption._isCheckLR = true;
     psmOption._lrCheckThres = 1.0f;
+    // 视差图填充
+    psmOption._isFillHoles = true;
 
     PatchMatchStereo pms;
     // 初始化
